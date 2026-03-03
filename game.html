@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Whack A Mole BNB Game</title>
+
+<script src="https://cdn.jsdelivr.net/npm/web3@1.7.0/dist/web3.min.js"></script>
+
+<style>
+body {
+    background: linear-gradient(#1e1e2f, #0f3460);
+    font-family: Arial;
+    text-align: center;
+    color: white;
+}
+
+h1 {
+    margin-top: 20px;
+}
+
+#game {
+    display: grid;
+    grid-template-columns: repeat(3, 150px);
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.hole {
+    width: 150px;
+    height: 150px;
+    background: #654321;
+    border-radius: 50%;
+    position: relative;
+    cursor: pointer;
+}
+
+.mole {
+    width: 100px;
+    height: 100px;
+    background: orange;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 0;
+    left: 25px;
+}
+
+button {
+    padding: 10px 20px;
+    background: #00adb5;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Whack A Mole - BNB Testnet</h1>
+
+<button onclick="connectWallet()">Connect Wallet</button>
+<button onclick="startGame()">Start Game (0.1 BNB)</button>
+
+<h2>Score: <span id="score">0</span></h2>
+
+<div id="game"></div>
+
+<script>
+
+let web3;
+let contract;
+let account;
+let score = 0;
+let gameInterval;
+
+const contractAddress = "PASTE_YOUR_CONTRACT_ADDRESS";
+const abi = [PASTE_ABI_HERE];
+
+async function connectWallet(){
+    if(window.ethereum){
+        web3 = new Web3(window.ethereum);
+        await ethereum.request({method:'eth_requestAccounts'});
+        const accounts = await web3.eth.getAccounts();
+        account = accounts[0];
+        contract = new web3.eth.Contract(abi, contractAddress);
+        alert("Connected: " + account);
+    }
+}
+
+async function startGame(){
+
+    await contract.methods.startGame().send({
+        from: account,
+        value: web3.utils.toWei("0.1","ether")
+    });
+
+    score = 0;
+    document.getElementById("score").innerText = score;
+
+    createBoard();
+
+    gameInterval = setInterval(showMole, 800);
+
+    setTimeout(endGame, 30000);
+}
+
+function createBoard(){
+    const game = document.getElementById("game");
+    game.innerHTML = "";
+    for(let i=0;i<9;i++){
+        let hole = document.createElement("div");
+        hole.classList.add("hole");
+        hole.onclick = hitMole;
+        game.appendChild(hole);
+    }
+}
+
+function showMole(){
+    const holes = document.querySelectorAll(".hole");
+    holes.forEach(h=>h.innerHTML="");
+    let random = Math.floor(Math.random()*9);
+    let mole = document.createElement("div");
+    mole.classList.add("mole");
+    holes[random].appendChild(mole);
+}
+
+function hitMole(e){
+    if(e.target.classList.contains("mole")){
+        score++;
+        document.getElementById("score").innerText = score;
+        e.target.remove();
+    }
+}
+
+async function endGame(){
+    clearInterval(gameInterval);
+
+    await contract.methods.submitScore(score).send({
+        from: account
+    });
+
+    alert("Game Over! Score: " + score);
+}
+
+</script>
+
+</body>
+</html>
